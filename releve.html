@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ali Baba | Relevé de compte</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        body { background: #f8f9fa; font-family: 'Segoe UI', sans-serif; color: #333; }
+        .tab-btn { color: #94a3b8; font-weight: 800; border-bottom: 3px solid transparent; transition: 0.2s; }
+        .tab-btn.active { color: #ff6a00; border-bottom-color: #ff6a00; }
+        .releve-card { background: white; border-radius: 18px; border: 1px solid #f1f5f9; transition: 0.3s; }
+        .status-pending { color: #f59e0b; background: #fffbeb; }
+        .status-success { color: #10b981; background: #ecfdf5; }
+        .status-failed { color: #ef4444; background: #fef2f2; }
+    </style>
+</head>
+<body class="pb-20">
+
+    <div class="bg-white p-5 flex items-center shadow-sm sticky top-0 z-50 border-b border-slate-100">
+        <a href="compte.html" class="text-slate-400 mr-4 active:scale-90 transition-transform">
+            <i class="fa-solid fa-arrow-left text-xl"></i>
+        </a>
+        <h1 class="text-lg font-black text-slate-800 uppercase tracking-tight">Relevé de compte</h1>
+    </div>
+
+    <div class="bg-white flex justify-around border-b border-slate-100 sticky top-[73px] z-40">
+        <button onclick="filterRecords('all', this)" class="tab-btn active px-4 py-4 text-[10px] uppercase tracking-wider">Tout</button>
+        <button onclick="filterRecords('recharge', this)" class="tab-btn px-4 py-4 text-[10px] uppercase tracking-wider">Recharges</button>
+        <button onclick="filterRecords('retrait', this)" class="tab-btn px-4 py-4 text-[10px] uppercase tracking-wider">Retraits</button>
+    </div>
+
+    <div class="p-5">
+        
+        <div id="loadingOrEmptyMessage" class="text-center py-28 flex flex-col items-center">
+            <div class="mb-5">
+                <i class="fa-solid fa-receipt text-6xl text-slate-100 mb-2"></i>
+                <i class="fa-solid fa-circle-notch fa-spin text-[#ff6a00] text-sm opacity-60"></i>
+            </div>
+            <p class="text-sm font-bold text-slate-400 italic">Chargement de l'historique...</p>
+        </div>
+
+        <div id="recordsContainer" class="hidden space-y-4">
+            </div>
+
+    </div>
+
+    <script>
+        const DB_URL = "https://alibaba-f22a0-default-rtdb.firebaseio.com";
+        const loggedUserPhone = localStorage.getItem('userPhone');
+        
+        let allRecords = [];
+
+        async function fetchAllHistory() {
+            if (!loggedUserPhone) return window.location.href = "index.html";
+
+            try {
+                // 1. Récupérer Recharges
+                const resRec = await fetch(`${DB_URL}/recharges_en_attente.json`);
+                const dataRec = await resRec.json();
+                
+                // 2. Récupérer Retraits
+                const resRet = await fetch(`${DB_URL}/retraits_en_attente.json`);
+                const dataRet = await resRet.json();
+
+                // Fusionner et filtrer pour l'utilisateur actuel
+                allRecords = [];
+
+                if (dataRec) {
+                    Object.keys(dataRec).forEach(key => {
+                        if (dataRec[key].userAccount === loggedUserPhone) {
+                            allRecords.push({ ...dataRec[key], type: 'recharge', id: key });
+                        }
+                    });
+                }
+
+                if (dataRet) {
+                    Object.keys(dataRet).forEach(key => {
+                        if (dataRet[key].user === loggedUserPhone) {
+                            allRecords.push({ ...dataRet[key], type: 'retrait', id: key });
+                        }
+                    });
+                }
+
+                // Trier par date (plus récent en haut)
+                allRecords.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+                renderUI(allRecords);
+
+            } catch (e) {
+                console.error(e);
+                document.getElementById('loadingOrEmptyMessage').innerHTML = '<p class="text-red-400 font-bold">Erreur de connexion</p>';
+            }
+        }
+
+        function renderUI(records) {
+            const container = document.getElementById('recordsContainer');
+            const msg = document.getElementById('loadingOrEmptyMessage');
+
+            if (records.length === 0) {
+                container.classList.add('hidden');
+                msg.classList.remove('hidden');
+                msg.innerHTML = '<i class="fa-solid fa-receipt text-6xl text-slate-100 mb-4"></i><p class="text-sm font-bold text-slate-400 italic">Aucune transaction trouvée.</p>';
+                return;
+            }
+
+            msg.classList.add('hidden');
+            container.classList.remove('hidden');
+
+            container.innerHTML = records.map(rec => {
+                const isRecharge = rec.type === 'recharge';
+                const statusClass = rec.status === 'En attente' ? 'status-pending' : (rec.status === 'Validé' ? 'status-success' : 'status-failed');
+                const icon = isRecharge ? 'fa-arrow-down-long text-green-500' : 'fa-arrow-up-long text-red-500';
+                const amountPrefix = isRecharge ? '+' : '-';
+
+                return `
+                    <div class="releve-card p-4 flex items-center justify-between border-l-4 ${isRecharge ? 'border-l-green-400' : 'border-l-red-400'}">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center">
+                                <i class="fa-solid ${icon}"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-[11px] font-black uppercase text-slate-800">${isRecharge ? 'Recharge' : 'Retrait'}</h3>
+                                <p class="text-[9px] font-bold text-slate-400">${rec.date}</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-sm font-black ${isRecharge ? 'text-green-600' : 'text-red-600'}">${amountPrefix} FC ${rec.amount.toLocaleString()}</p>
+                            <span class="status-badge ${statusClass} text-[8px] font-black uppercase px-2 py-1 rounded-full">${rec.status}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function filterRecords(type, btn) {
+            // Update UI tabs
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            if (type === 'all') {
+                renderUI(allRecords);
+            } else {
+                const filtered = allRecords.filter(r => r.type === type);
+                renderUI(filtered);
+            }
+        }
+
+        window.onload = fetchAllHistory;
+    </script>
+</body>
+</html>
