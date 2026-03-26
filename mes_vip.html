@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ali Baba | Mes Produits</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        body { background: #f8f9fa; font-family: 'Segoe UI', sans-serif; }
+        .card-active { background: white; border-radius: 20px; border-left: 5px solid #ff6a00; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+        .btn-collect { background: linear-gradient(90deg, #ff8a00, #ff6a00); color: white; border-radius: 12px; transition: 0.3s; }
+        .btn-collect:active { transform: scale(0.95); opacity: 0.9; }
+        .progress-bar { background: #eee; border-radius: 10px; height: 8px; overflow: hidden; }
+        .progress-fill { background: #ff6a00; height: 100%; width: 100%; transition: 1s; } 
+    </style>
+</head>
+<body class="pb-32">
+
+    <div class="bg-white p-5 flex items-center shadow-sm sticky top-0 z-50">
+        <a href="produit.html" class="text-slate-400 mr-4 active:scale-90 transition-transform">
+            <i class="fa-solid fa-arrow-left text-xl"></i>
+        </a>
+        <h1 class="text-lg font-black text-slate-800 uppercase tracking-tight">Mes Investissements</h1>
+    </div>
+
+    <div class="px-5 mt-6">
+        <div class="bg-[#ff6a00] p-6 rounded-[2rem] text-white shadow-xl flex justify-between items-center">
+            <div>
+                <p class="text-[10px] uppercase font-bold opacity-80">Revenu à collecter</p>
+                <p id="profitDisplay" class="text-2xl font-black">FC 0.00</p>
+            </div>
+            <i class="fa-solid fa-clock-rotate-left text-4xl opacity-30"></i>
+        </div>
+    </div>
+
+    <div id="activeProductsContainer" class="px-5 mt-8 space-y-5">
+        
+        <div id="emptyMessage" class="text-center py-24">
+            <div class="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fa-solid fa-box-open text-slate-300 text-3xl"></i>
+            </div>
+            <p class="text-slate-400 font-bold text-sm">Vous n'avez aucun produit actif.</p>
+            <a href="produit.html" class="inline-block border border-[#ff6a00] text-[#ff6a00] px-8 py-3 rounded-xl font-black text-[10px] uppercase mt-6 shadow-sm active:scale-95 transition-all">
+                Aller à la boutique
+            </a>
+        </div>
+
+    </div>
+
+    <nav class="fixed bottom-0 left-0 right-0 bg-white p-4 flex justify-around items-center z-50 shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
+        <a href="dashboard.html" class="flex flex-col items-center text-slate-300">
+            <i class="fa-solid fa-house text-xl"></i>
+            <span class="text-[9px] font-bold mt-1 uppercase tracking-tighter">Maison</span>
+        </a>
+        <a href="produit.html" class="flex flex-col items-center text-[#ff6a00]">
+            <i class="fa-solid fa-bag-shopping text-xl"></i>
+            <span class="text-[9px] font-bold mt-1 uppercase tracking-tighter">Produit</span>
+        </a>
+        <a href="equipe.html" class="flex flex-col items-center text-slate-300">
+            <i class="fa-solid fa-users text-xl"></i>
+            <span class="text-[9px] font-bold mt-1 uppercase tracking-tighter">Équipe</span>
+        </a>
+        <a href="compte.html" class="flex flex-col items-center text-slate-300">
+            <i class="fa-solid fa-user text-xl"></i>
+            <span class="text-[9px] font-bold mt-1 uppercase tracking-tighter">Le mien</span>
+        </a>
+    </nav>
+
+    <script>
+        const DB_URL = "https://alibaba-f22a0-default-rtdb.firebaseio.com/users";
+        const userPhone = localStorage.getItem('userPhone');
+
+        // Liste des gains correspondants aux VIPs (ID: GainJournalier)
+        const dailyGains = { 1: 2300, 2: 5200, 3: 13500, 4: 19000, 5: 28000, 6: 42000, 7: 77000, 8: 96000, 9: 148000, 10: 258000, 11: 950000, 12: 1850000, 13: 2500000 };
+
+        async function loadMyInvestments() {
+            if (!userPhone) return window.location.href = "index.html";
+
+            try {
+                const res = await fetch(`${DB_URL}/${userPhone}.json`);
+                const user = await res.json();
+
+                if (user && user.vipActive) {
+                    const vipId = user.vipActive;
+                    const gain = dailyGains[vipId];
+                    
+                    document.getElementById('emptyMessage').classList.add('hidden');
+                    document.getElementById('profitDisplay').innerText = `FC ${gain.toLocaleString()}`;
+                    
+                    document.getElementById('activeProductsContainer').innerHTML = `
+                        <div class="card-active p-5">
+                            <div class="flex justify-between items-start mb-4">
+                                <div>
+                                    <h3 class="text-sm font-black text-slate-800 uppercase italic">Pack VIP ${vipId}</h3>
+                                    <p class="text-[10px] text-slate-400 font-bold uppercase mt-1 italic text-green-500">En cours de production...</p>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-xs font-black text-[#ff6a00]">FC ${gain.toLocaleString()}</p>
+                                    <p class="text-[9px] font-bold text-slate-400 uppercase">Gain Journalier</p>
+                                </div>
+                            </div>
+                            
+                            <div class="progress-bar mb-4">
+                                <div class="progress-fill"></div>
+                            </div>
+                            
+                            <button onclick="collecterGains(${gain})" class="btn-collect w-full py-4 text-xs font-black uppercase tracking-widest shadow-md">
+                                Collecter mon profit
+                            </button>
+                        </div>
+                    `;
+                }
+            } catch (e) { console.error("Erreur chargement:", e); }
+        }
+
+        async function collecterGains(montant) {
+            try {
+                const res = await fetch(`${DB_URL}/${userPhone}.json`);
+                const user = await res.json();
+                
+                const nouveauSolde = (user.balance || 0) + montant;
+
+                await fetch(`${DB_URL}/${userPhone}.json`, {
+                    method: 'PATCH',
+                    body: JSON.stringify({ balance: nouveauSolde })
+                });
+
+                alert(`Bravo ! FC ${montant.toLocaleString()} ont été ajoutés à votre solde.`);
+                window.location.href = "dashboard.html";
+            } catch (e) { alert("Erreur lors de la collecte."); }
+        }
+
+        window.onload = loadMyInvestments;
+    </script>
+
+</body>
+</html>
