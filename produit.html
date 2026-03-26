@@ -30,10 +30,10 @@
                     <p class="text-[9px] uppercase font-bold opacity-80">Mon Solde</p>
                 </div>
             </div>
-            <div class="text-right">
+            <a href="mes_vip.html" class="text-right block active:opacity-70">
                 <p id="userVipCount" class="font-black text-lg italic">0</p>
-                <p class="text-[9px] uppercase font-bold opacity-80">Mes VIP Actifs</p>
-            </div>
+                <p class="text-[9px] uppercase font-bold opacity-80 underline underline-offset-2">Mes VIP Actifs</p>
+            </a>
         </div>
     </div>
 
@@ -144,17 +144,16 @@
                 const userRes = await fetch(`${DB_URL}/${userPhone}.json`);
                 const user = await userRes.json();
                 
-                // Correction du système de commission (utilise referredBy)
                 if (user.referredBy && user.referredBy !== "DIRECT") {
-                    await distribuerCommission(user.referredBy, prix * 0.35); // LV1
+                    await distribuerCommission(user.referredBy, prix * 0.35);
                     const p1Res = await fetch(`${DB_URL}/${user.referredBy}.json`);
                     const p1 = await p1Res.json();
                     if (p1 && p1.referredBy && p1.referredBy !== "DIRECT") {
-                        await distribuerCommission(p1.referredBy, prix * 0.02); // LV2
+                        await distribuerCommission(p1.referredBy, prix * 0.02);
                         const p2Res = await fetch(`${DB_URL}/${p1.referredBy}.json`);
                         const p2 = await p2Res.json();
                         if (p2 && p2.referredBy && p2.referredBy !== "DIRECT") {
-                            await distribuerCommission(p2.referredBy, prix * 0.01); // LV3
+                            await distribuerCommission(p2.referredBy, prix * 0.01);
                         }
                     }
                 }
