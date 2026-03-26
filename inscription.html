@@ -39,12 +39,25 @@
     <script>
         const DB_URL = "https://alibaba-f22a0-default-rtdb.firebaseio.com/users";
 
+        // DETECTION DIRECTE DU CODE DE PARRAINAGE
+        window.onload = function() {
+            const params = new URLSearchParams(window.location.search);
+            const code = params.get('c');
+            if (code) {
+                const inviteField = document.getElementById('inviteCode');
+                inviteField.value = code.toUpperCase();
+                inviteField.readOnly = true;
+                inviteField.style.backgroundColor = "#fff7f2";
+            }
+        };
+
         document.getElementById('regForm').onsubmit = async function(e) {
             e.preventDefault();
             const btn = document.getElementById('submitBtn');
-            const phone = document.getElementById('phone').value.replace('+', '');
+            const phone = document.getElementById('phone').value.replace('+', '').trim();
             const pass = document.getElementById('pass').value;
             const confirm = document.getElementById('confirm_pass').value;
+            const inviteCode = document.getElementById('inviteCode').value.toUpperCase().trim();
 
             if (pass !== confirm) {
                 alert("Les mots de passe ne sont pas identiques !");
@@ -62,12 +75,14 @@
                 if (existing) {
                     alert("Ce numéro est déjà utilisé !");
                 } else {
-                    // Création de l'utilisateur
+                    // Création de l'utilisateur avec système de parrainage fonctionnel
                     const userData = {
-                        username: document.getElementById('username').name,
+                        username: document.getElementById('username').value,
                         phone: phone,
                         password: pass,
+                        referredBy: inviteCode || "DIRECT",
                         balance: 0,
+                        totalInvested: 0,
                         vip: "aucun",
                         date: new Date().toISOString()
                     };
@@ -78,6 +93,7 @@
                     });
 
                     localStorage.setItem('userPhone', phone);
+                    alert("Inscription réussie !");
                     window.location.href = "dashboard.html";
                 }
             } catch (err) {
