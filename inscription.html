@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alibaba.com - Inscription</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        .register-container { background-color: white; padding: 30px 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); width: 90%; max-width: 400px; text-align: center; }
+        h1 { color: #FF6A00; margin-bottom: 5px; }
+        p { color: #666; margin-bottom: 20px; font-size: 14px; }
+        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
+        button { width: 100%; padding: 12px; background-color: #FF6A00; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 15px; }
+        button:disabled { background-color: #ccc; }
+        .login-link { margin-top: 20px; font-size: 14px; }
+        .login-link a { color: #FF6A00; text-decoration: none; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="register-container">
+        <h1>Alibaba.com</h1>
+        <p>Créez votre compte</p>
+        
+        <form id="regForm">
+            <input type="text" id="username" placeholder="Nom d'utilisateur" required>
+            <input type="tel" id="phone" placeholder="Numéro (ex: +243984874123)" pattern="^\+243[0-9]{9}$" required>
+            <input type="password" id="pass" placeholder="Mot de passe (min 6 car.)" minlength="6" required>
+            <input type="password" id="confirm_pass" placeholder="Confirmer le mot de passe" required>
+            <input type="text" id="inviteCode" placeholder="Code d'invitation (Optionnel)">
+            <button type="submit" id="submitBtn">S'inscrire</button>
+        </form>
+
+        <div class="login-link">
+            Déjà un compte ? <a href="index.html">Se connecter</a>
+        </div>
+    </div>
+
+    <script>
+        const DB_URL = "https://alibaba-f22a0-default-rtdb.firebaseio.com/users";
+
+        document.getElementById('regForm').onsubmit = async function(e) {
+            e.preventDefault();
+            const btn = document.getElementById('submitBtn');
+            const phone = document.getElementById('phone').value.replace('+', '');
+            const pass = document.getElementById('pass').value;
+            const confirm = document.getElementById('confirm_pass').value;
+
+            if (pass !== confirm) {
+                alert("Les mots de passe ne sont pas identiques !");
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerText = "Inscription...";
+
+            try {
+                // Vérifier si l'utilisateur existe déjà
+                const check = await fetch(`${DB_URL}/${phone}.json`);
+                const existing = await check.json();
+
+                if (existing) {
+                    alert("Ce numéro est déjà utilisé !");
+                } else {
+                    // Création de l'utilisateur
+                    const userData = {
+                        username: document.getElementById('username').name,
+                        phone: phone,
+                        password: pass,
+                        balance: 0,
+                        vip: "aucun",
+                        date: new Date().toISOString()
+                    };
+
+                    await fetch(`${DB_URL}/${phone}.json`, {
+                        method: 'PUT',
+                        body: JSON.stringify(userData)
+                    });
+
+                    localStorage.setItem('userPhone', phone);
+                    window.location.href = "dashboard.html";
+                }
+            } catch (err) {
+                alert("Erreur de connexion au serveur.");
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "S'inscrire";
+            }
+        };
+    </script>
+</body>
+</html>
