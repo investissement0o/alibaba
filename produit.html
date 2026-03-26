@@ -12,6 +12,7 @@
         .btn-buy { background: #ff6a00; color: white; border-radius: 8px; font-weight: bold; transition: 0.3s; }
         .btn-buy:active { transform: scale(0.95); opacity: 0.8; }
         .stats-header { background: #ff6a00; border-radius: 12px; color: white; }
+        .active-badge { background: #22c55e; color: white; padding: 2px 8px; border-radius: 20px; font-size: 10px; font-weight: 900; position: absolute; top: 10px; right: 10px; }
     </style>
 </head>
 <body class="pb-32">
@@ -34,6 +35,11 @@
                 <p class="text-[9px] uppercase font-bold opacity-80">Mes VIP Actifs</p>
             </div>
         </div>
+    </div>
+
+    <div id="myInvestmentSection" class="hidden px-4 mt-6">
+        <h2 class="text-xs font-black uppercase text-slate-400 mb-3 ml-1 italic border-l-4 border-[#ff6a00] pl-2">Mon équipement loué</h2>
+        <div id="activeVipDisplay"></div>
     </div>
 
     <div id="vipList" class="px-4 mt-6 space-y-4"></div>
@@ -82,13 +88,15 @@
             const res = await fetch(`${DB_URL}/${userPhone}.json`);
             const data = await res.json();
             document.getElementById('userBalance').innerText = `FC ${data.balance.toLocaleString()}`;
-            renderProducts(data.balance);
+            document.getElementById('userVipCount').innerText = data.vipActive ? "1" : "0";
+            renderProducts(data.balance, data.vipActive);
         }
 
-        function renderProducts(currentBalance) {
+        function renderProducts(currentBalance, activeVipId) {
             const list = document.getElementById('vipList');
             list.innerHTML = vips.map(v => `
-                <div class="card-vip p-3 flex gap-4 items-center shadow-md">
+                <div class="card-vip p-3 flex gap-4 items-center shadow-md relative">
+                    ${activeVipId == v.id ? '<span class="active-badge italic">POSSÉDÉ</span>' : ''}
                     <div class="w-1/3 h-24 overflow-hidden rounded-lg">
                         <img src="${v.img}" class="w-full h-full object-cover">
                     </div>
@@ -96,10 +104,30 @@
                         <h3 class="text-sm font-black text-[#ff6a00] uppercase italic">VIP ${v.id}</h3>
                         <p class="text-[10px] font-bold text-slate-700">Prix: FC ${v.prix.toLocaleString()}</p>
                         <p class="text-[10px] font-bold text-orange-600">Gain/Jour: FC ${v.jour.toLocaleString()}</p>
-                        <button onclick="validerAchat(${v.id}, ${v.prix}, ${currentBalance})" class="btn-buy mt-2 w-full py-2 text-[10px] uppercase">Acheter</button>
+                        <button onclick="validerAchat(${v.id}, ${v.prix}, ${currentBalance})" 
+                                ${activeVipId == v.id ? 'disabled' : ''}
+                                class="btn-buy mt-2 w-full py-2 text-[10px] uppercase ${activeVipId == v.id ? 'opacity-30' : ''}">
+                            ${activeVipId == v.id ? 'Déjà acquis' : 'Acheter'}
+                        </button>
                     </div>
                 </div>
             `).join('');
+
+            if (activeVipId) {
+                const myVip = vips.find(v => v.id == activeVipId);
+                const section = document.getElementById('myInvestmentSection');
+                section.classList.remove('hidden');
+                document.getElementById('activeVipDisplay').innerHTML = `
+                    <div class="bg-slate-900 p-4 rounded-2xl flex items-center gap-4 text-white shadow-xl">
+                        <img src="${myVip.img}" class="w-16 h-16 rounded-xl object-cover border-2 border-green-500">
+                        <div>
+                            <p class="text-[10px] font-black text-green-400 uppercase tracking-tighter">Équipement Actif</p>
+                            <h3 class="text-lg font-black italic">VIP ${myVip.id}</h3>
+                            <p class="text-[10px] opacity-80 font-bold italic">Production : FC ${myVip.jour.toLocaleString()} / jour</p>
+                        </div>
+                    </div>
+                `;
+            }
         }
 
         async function validerAchat(id, prix, balance) {
@@ -107,41 +135,46 @@
             if (!confirm(`Confirmer l'achat du VIP ${id} pour FC ${prix.toLocaleString()} ?`)) return;
 
             try {
-                // 1. Déduire le prix du solde de l'acheteur
                 const nouveauSolde = balance - prix;
                 await fetch(`${DB_URL}/${userPhone}.json`, {
                     method: 'PATCH',
-                    body: JSON.stringify({ balance: nouveauSolde, vipActive: id })
+                    body: JSON.stringify({ balance: nouveauSolde, vipActive: id, totalInvested: prix })
                 });
 
-                // 2. Distribution des Commissions (LV1: 35%, LV2: 2%, LV3: 1%)
                 const userRes = await fetch(`${DB_URL}/${userPhone}.json`);
                 const user = await userRes.json();
                 
-                if (user.parrain) {
-                    await distribuerCommission(user.parrain, prix * 0.35); // LV1
-                    const p1 = await (await fetch(`${DB_URL}/${user.parrain}.json`)).json();
-                    if (p1.parrain) {
-                        await distribuerCommission(p1.parrain, prix * 0.02); // LV2
-                        const p2 = await (await fetch(`${DB_URL}/${p1.parrain}.json`)).json();
-                        if (p2.parrain) await distribuerCommission(p2.parrain, prix * 0.01); // LV3
+                // Correction du système de commission (utilise referredBy)
+                if (user.referredBy && user.referredBy !== "DIRECT") {
+                    await distribuerCommission(user.referredBy, prix * 0.35); // LV1
+                    const p1Res = await fetch(`${DB_URL}/${user.referredBy}.json`);
+                    const p1 = await p1Res.json();
+                    if (p1 && p1.referredBy && p1.referredBy !== "DIRECT") {
+                        await distribuerCommission(p1.referredBy, prix * 0.02); // LV2
+                        const p2Res = await fetch(`${DB_URL}/${p1.referredBy}.json`);
+                        const p2 = await p2Res.json();
+                        if (p2 && p2.referredBy && p2.referredBy !== "DIRECT") {
+                            await distribuerCommission(p2.referredBy, prix * 0.01); // LV3
+                        }
                     }
                 }
 
-                alert("Achat réussi ! Vos revenus commenceront demain.");
+                alert("Achat réussi ! Vos revenus sont activés.");
                 location.reload();
             } catch (e) { alert("Erreur lors de la transaction."); }
         }
 
         async function distribuerCommission(phone, montant) {
-            const res = await fetch(`${DB_URL}/${phone}.json`);
-            const data = await res.json();
-            if (data) {
-                await fetch(`${DB_URL}/${phone}.json`, {
-                    method: 'PATCH',
-                    body: JSON.stringify({ balance: data.balance + montant })
-                });
-            }
+            try {
+                const res = await fetch(`${DB_URL}/${phone}.json`);
+                const data = await res.json();
+                if (data) {
+                    await fetch(`${DB_URL}/${phone}.json`, {
+                        method: 'PATCH',
+                        body: JSON.stringify({ balance: (data.balance || 0) + montant })
+                    });
+                }
+            } catch (e) { console.error("Erreur commission", e); }
         }
 
         window.onload = fetchInfo;
