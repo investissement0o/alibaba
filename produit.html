@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ali Baba | Boutique VIP</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        body { background: #ffffff; font-family: 'Segoe UI', sans-serif; color: #333; }
+        .card-vip { background: #fffcf9; border-radius: 15px; border: 1px solid #ffe8d9; }
+        .btn-buy { background: #ff6a00; color: white; border-radius: 8px; font-weight: bold; transition: 0.3s; }
+        .btn-buy:active { transform: scale(0.95); opacity: 0.8; }
+        .stats-header { background: #ff6a00; border-radius: 12px; color: white; }
+    </style>
+</head>
+<body class="pb-32">
+
+    <div class="w-full h-44 overflow-hidden shadow-sm">
+        <img src="IMG_3923.jpeg" class="w-full h-full object-cover">
+    </div>
+
+    <div class="px-4 mt-4">
+        <div class="stats-header p-4 flex items-center justify-between shadow-lg">
+            <div class="flex items-center">
+                <img src="IMG_3923.jpeg" class="w-12 h-12 rounded-lg object-cover mr-3 border-2 border-white">
+                <div class="text-left">
+                    <p id="userBalance" class="font-black text-lg italic">FC ...</p>
+                    <p class="text-[9px] uppercase font-bold opacity-80">Mon Solde</p>
+                </div>
+            </div>
+            <div class="text-right">
+                <p id="userVipCount" class="font-black text-lg italic">0</p>
+                <p class="text-[9px] uppercase font-bold opacity-80">Mes VIP Actifs</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="vipList" class="px-4 mt-6 space-y-4"></div>
+
+    <nav class="fixed bottom-0 left-0 right-0 bg-white p-4 flex justify-around items-center z-50 shadow-inner">
+        <a href="dashboard.html" class="flex flex-col items-center text-slate-300">
+            <i class="fa-solid fa-house text-xl"></i>
+            <span class="text-[9px] font-bold mt-1 uppercase">Maison</span>
+        </a>
+        <a href="produit.html" class="flex flex-col items-center text-[#ff6a00]">
+            <i class="fa-solid fa-bag-shopping text-xl"></i>
+            <span class="text-[9px] font-bold mt-1 uppercase">Produit</span>
+        </a>
+        <a href="equipe.html" class="flex flex-col items-center text-slate-300">
+            <i class="fa-solid fa-users text-xl"></i>
+            <span class="text-[9px] font-bold mt-1 uppercase">Équipe</span>
+        </a>
+        <a href="compte.html" class="flex flex-col items-center text-slate-300">
+            <i class="fa-solid fa-user text-xl"></i>
+            <span class="text-[9px] font-bold mt-1 uppercase">Le mien</span>
+        </a>
+    </nav>
+
+    <script>
+        const DB_URL = "https://alibaba-f22a0-default-rtdb.firebaseio.com/users";
+        const userPhone = localStorage.getItem('userPhone');
+
+        const vips = [
+            { id: 1, prix: 8000, jour: 2300, img: "IMG_3927.jpeg" },
+            { id: 2, prix: 20000, jour: 5200, img: "IMG_3928.jpeg" },
+            { id: 3, prix: 50000, jour: 13500, img: "IMG_3929.jpeg" },
+            { id: 4, prix: 75000, jour: 19000, img: "IMG_3930.jpeg" },
+            { id: 5, prix: 100000, jour: 28000, img: "IMG_3931.jpeg" },
+            { id: 6, prix: 150000, jour: 42000, img: "IMG_3932.jpeg" },
+            { id: 7, prix: 280000, jour: 77000, img: "IMG_3933.jpeg" },
+            { id: 8, prix: 400000, jour: 96000, img: "IMG_3934.jpeg" },
+            { id: 9, prix: 700000, jour: 148000, img: "IMG_3935.jpeg" },
+            { id: 10, prix: 1000000, jour: 258000, img: "IMG_3936.jpeg" },
+            { id: 11, prix: 3000000, jour: 950000, img: "IMG_3937.jpeg" },
+            { id: 12, prix: 7500000, jour: 1850000, img: "IMG_3938.jpeg" },
+            { id: 13, prix: 10200000, jour: 2500000, img: "IMG_3939.jpeg" }
+        ];
+
+        async function fetchInfo() {
+            if (!userPhone) return window.location.href = "index.html";
+            const res = await fetch(`${DB_URL}/${userPhone}.json`);
+            const data = await res.json();
+            document.getElementById('userBalance').innerText = `FC ${data.balance.toLocaleString()}`;
+            renderProducts(data.balance);
+        }
+
+        function renderProducts(currentBalance) {
+            const list = document.getElementById('vipList');
+            list.innerHTML = vips.map(v => `
+                <div class="card-vip p-3 flex gap-4 items-center shadow-md">
+                    <div class="w-1/3 h-24 overflow-hidden rounded-lg">
+                        <img src="${v.img}" class="w-full h-full object-cover">
+                    </div>
+                    <div class="w-2/3">
+                        <h3 class="text-sm font-black text-[#ff6a00] uppercase italic">VIP ${v.id}</h3>
+                        <p class="text-[10px] font-bold text-slate-700">Prix: FC ${v.prix.toLocaleString()}</p>
+                        <p class="text-[10px] font-bold text-orange-600">Gain/Jour: FC ${v.jour.toLocaleString()}</p>
+                        <button onclick="validerAchat(${v.id}, ${v.prix}, ${currentBalance})" class="btn-buy mt-2 w-full py-2 text-[10px] uppercase">Acheter</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function validerAchat(id, prix, balance) {
+            if (balance < prix) return alert("Solde insuffisant ! Veuillez recharger votre compte.");
+            if (!confirm(`Confirmer l'achat du VIP ${id} pour FC ${prix.toLocaleString()} ?`)) return;
+
+            try {
+                // 1. Déduire le prix du solde de l'acheteur
+                const nouveauSolde = balance - prix;
+                await fetch(`${DB_URL}/${userPhone}.json`, {
+                    method: 'PATCH',
+                    body: JSON.stringify({ balance: nouveauSolde, vipActive: id })
+                });
+
+                // 2. Distribution des Commissions (LV1: 35%, LV2: 2%, LV3: 1%)
+                const userRes = await fetch(`${DB_URL}/${userPhone}.json`);
+                const user = await userRes.json();
+                
+                if (user.parrain) {
+                    await distribuerCommission(user.parrain, prix * 0.35); // LV1
+                    const p1 = await (await fetch(`${DB_URL}/${user.parrain}.json`)).json();
+                    if (p1.parrain) {
+                        await distribuerCommission(p1.parrain, prix * 0.02); // LV2
+                        const p2 = await (await fetch(`${DB_URL}/${p1.parrain}.json`)).json();
+                        if (p2.parrain) await distribuerCommission(p2.parrain, prix * 0.01); // LV3
+                    }
+                }
+
+                alert("Achat réussi ! Vos revenus commenceront demain.");
+                location.reload();
+            } catch (e) { alert("Erreur lors de la transaction."); }
+        }
+
+        async function distribuerCommission(phone, montant) {
+            const res = await fetch(`${DB_URL}/${phone}.json`);
+            const data = await res.json();
+            if (data) {
+                await fetch(`${DB_URL}/${phone}.json`, {
+                    method: 'PATCH',
+                    body: JSON.stringify({ balance: data.balance + montant })
+                });
+            }
+        }
+
+        window.onload = fetchInfo;
+    </script>
+</body>
+</html>
