@@ -166,24 +166,24 @@
             btn.disabled = true;
             btn.innerText = "Envoi en cours...";
 
+            // STRUCTURE CORRIGÉE POUR L'ADMIN
             const rechargeData = {
-                userAccount: loggedUserPhone,
-                amount: selectedAmount,
-                network: selectedNetworkName,
+                phone: loggedUserPhone, // On utilise 'phone' pour l'admin
+                montant: parseFloat(selectedAmount), // On utilise 'montant' pour l'admin
+                reseau: selectedNetworkName,
                 transactionId: txId,
-                sender: senderPhone,
-                status: "En attente",
-                date: new Date().toLocaleString()
+                expediteur: senderPhone,
+                date: new Date().toLocaleString('fr-FR')
             };
 
             try {
-                // Créer une demande de recharge dans un dossier spécifique pour l'admin
-                await fetch(`${DB_URL}/recharges_en_attente.json`, {
+                // ENVOI VERS LE DOSSIER /recharges/ (le même que celui lu par l'admin)
+                await fetch(`${DB_URL}/recharges.json`, {
                     method: 'POST',
                     body: JSON.stringify(rechargeData)
                 });
 
-                alert("Votre demande de FC " + selectedAmount.toLocaleString() + " a été envoyée. Elle sera créditée après vérification par l'administrateur.");
+                alert("Votre demande de FC " + selectedAmount.toLocaleString() + " a été envoyée. Elle sera créditée après vérification.");
                 window.location.href = "compte.html";
             } catch (err) {
                 alert("Erreur lors de l'envoi de la demande.");
